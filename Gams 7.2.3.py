@@ -7,6 +7,9 @@
 import cvxpy as cvx
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+get_ipython().run_line_magic('matplotlib', 'inline')
+get_ipython().run_line_magic('config', "InlineBackend.figure_format = 'svg'")
 import math
 
 
@@ -82,7 +85,7 @@ BusData = pd.DataFrame.from_dict({
 BusData
 
 
-# In[7]:
+# In[70]:
 
 
 T = len(WD.index) #time samples
@@ -102,9 +105,10 @@ Pc_max = 0.2*SOC_max; #Charge limits
 Pc_min = 0;
 eta_c = 0.95; #Charge efficiency
 eta_d = 0.9; #Discharge efficiency
+Slack_bus = 13 #Number of the slack bus
 
 
-# In[8]:
+# In[71]:
 
 
 #Variables
@@ -139,7 +143,7 @@ Wind = Data.loc[:,'Wind'].values/Sbase #Wind power
 A = np.eye(Gen_num)
 
 
-# In[56]:
+# In[78]:
 
 
 samples = []
@@ -178,6 +182,15 @@ for t in range(T):
     
         constr.extend([Pij_sum == Pg_sum + Ls[i,t] + Pw[i,t] - Pl[i]*WD.loc[t,'d'] - Pc[i,t] + Pd[i,t]]) #Power balance
         
+        if i+1 == T:
+             constr.extend([SOC[:,i] == SOC_0])
+            
+        
+        if i+1 == Slack_bus:
+            constr.extend([delta[i,t] == 0])
+
+
+        
     constr.extend([SOC[:,t] >= SOC_min, #Battery's charge limits
                   SOC[:,t] <= SOC_max,
                   Pd[:,t] >= Pd_min, #Discharge limits
@@ -201,11 +214,11 @@ for t in range(T):
 prob = sum(samples)
 
 #prob.constraints += [SOC[:,T-1] == SOC_0] #???
-OV = prob.solve(solver=cvx.GLPK_MI)
+OV = prob.solve(solver=cvx.GLPK_MI) #Value of objective function
 #OV = prob.solve()
 
 
-# In[57]:
+# In[79]:
 
 
 P_sum = sum(Pg.value)
@@ -213,14 +226,14 @@ P_f = Pg.value
 OV
 
 
-# In[58]:
+# In[89]:
 
 
 SOC_sum = sum(SOC.value)
 SOC_f = SOC.value
 
 
-# In[59]:
+# In[81]:
 
 
 Pd_sum = sum(Pd.value)
@@ -229,19 +242,98 @@ Pd_f = Pd.value
 Pc_f = Pc.value
 
 
-# In[60]:
+# In[82]:
 
 
 Pw_sum = sum(Pw.value)
 
 
-# In[61]:
+# In[83]:
 
 
 Pl_sum = sum(Pl)*WD.loc[:,'d']
 
 
+# In[84]:
 
 
+plt.figure()
+plt.plot(Pl_sum,label="Demand") 
+plt.plot(P_sum,label="Generation") 
+plt.plot(SOC_sum,label="SOC",marker = 'o') 
+plt.plot(Pw_sum,label="Pw")
+plt.xlabel('Time(h)')
+plt.ylabel('Power/Energy')
+plt.legend(loc='right')
+plt.grid()
 
+
+# In[90]:
+
+
+x = range(1,T+1)
+plt.figure()
+ 
+plt.bar(x,Pd_sum.flatten(),label="Pd", width = 0.4) 
+plt.bar(x,Pc_sum.flatten(),label="Pc", width = 0.4) 
+plt.xlabel('Time(h)')
+plt.ylabel('Charge/Discharge (MW)')
+plt.legend(loc='upper right')
+plt.grid()
+
+
+# In[91]:
+
+
+plt.figure()
+plt.plot(P_f[0,:],label="g1", marker = '.') 
+plt.plot(P_f[1,:],label="g2", marker = '.') 
+plt.plot(P_f[2,:],label="g3", marker = '.')
+plt.plot(P_f[3,:],label="g4", marker = '.')
+plt.plot(P_f[4,:],label="g5", marker = '.')
+plt.plot(P_f[5,:],label="g6", marker = '.')
+plt.plot(P_f[6,:],label="g7", marker = '.')
+plt.plot(P_f[7,:],label="g8", marker = '.')
+plt.plot(P_f[8,:],label="g9", marker = '.')
+plt.plot(P_f[9,:],label="g10", marker = '.')
+plt.plot(P_f[10,:],label="g11", marker = '.')
+plt.plot(P_f[11,:],label="g12", marker = '.')
+plt.xlabel('Time(h)')
+plt.ylabel('Power/Energy')
+plt.legend(loc='upper right')
+plt.grid()
+
+
+# In[65]:
+
+
+plt.figure()
+ 
+plt.plot(Pd_f[18,:],label="Discharge") 
+plt.plot(Pc_f[18,:],label="Charge") 
+plt.plot(SOC_f[18,:],label="SOC") 
+plt.xlabel('Time(h)')
+plt.ylabel('Charge/Discharge (pu)')
+plt.legend(loc='upper right')
+plt.grid()
+
+
+# In[66]:
+
+
+plt.figure()
+ 
+plt.plot(Pd_f[20,:],label="Discharge") 
+plt.plot(Pc_f[20,:],label="Charge") 
+plt.plot(SOC_f[20,:],label="SOC") 
+plt.xlabel('Time(h)')
+plt.ylabel('Charge/Discharge (pu)')
+plt.legend(loc='upper right')
+plt.grid()
+
+
+# In[77]:
+
+
+delta.value
 
