@@ -1,12 +1,11 @@
-
+,
 using JuMP
 using Ipopt
 using GLPKMathProgInterface
 using Cbc
 using DataArrays, DataFrames, CSV
 using Gadfly
-using Pajarito
-#using CPLEX
+using Pajarito#using CPLEX
 
 ###  Data definition
 #Generators data
@@ -171,15 +170,13 @@ NI = NBuses;
 NL = NLines;
 NG = NGen;
 
-#m = Model(solver = GLPKSolverMIP());
+m = Model(solver = GLPKSolverMIP());
 #m = Model(solver = IpoptSolver());
-m = Model(solver =  CbcSolver());
+#m = Model(solver =  CbcSolver());
 #m = Model(solver = PajaritoSolver(mip_solver = GLPKSolverMIP(), cont_solver = IpoptSolver()))
 
 @variable(m, p[g=1:NG,t=1:T]);
-
 @variable(m, pl[l=1:NL,t=1:T]);
-
 @variable(m, θ[i=1:NI,t=1:T]);
 @variable(m, Ls[i=1:NI,t=1:T]);
 @variable(m, SOC[i=1:NI,t=1:T]);
